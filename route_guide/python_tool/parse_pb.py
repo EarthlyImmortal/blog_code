@@ -27,10 +27,8 @@ def display_message_info(message):
     """显示消息内容"""
     if message:
         print("=== PB 消息内容 ===")
-        print(f"内容: {message.content}")
-        print(f"ID: {message.id}")
-        print(f"时间戳: {message.timestamp}")
-        print(f"标签: {list(message.tags)}")
+        print(f"latitude: {message.latitude}")
+        print(f"longitude: {message.longitude}")
         print("===================")
 
 # 示例使用
@@ -46,6 +44,11 @@ if __name__ == "__main__":
     # 序列化为二进制字符串
     binary_data = serialize_to_string(sample_message)
     print(f"二进制数据长度: {len(binary_data)} 字节")
+
+    # 将二进制数据转换为16进制表示
+    hex_data = binary_data.hex()  # 方法1：使用bytes.hex()方法
+    # 或者 hex_data = binascii.hexlify(binary_data).decode('utf-8')  # 方法2
+    print(f"16进制表示: {hex_data}")
     
     # 从二进制字符串解析
     parsed_message = parse_string_to_pb(binary_data)
