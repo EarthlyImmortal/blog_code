@@ -44,3 +44,23 @@ sh generate_python_pb.sh
 ```shell
  python311 parse_pb.py 
 ```
+
+# ubuntu 24.04运行流程
+后面换上ubuntu24.04, 默认python版本3.12.2, 使用虚拟环境运行, 流程如下:
+```shell
+# 创建虚拟环境
+python3 -m venv python_tool
+# 激活虚拟环境
+source python_tool/bin/activate
+# 安装所需包
+pip install google protobuf
+# 验证安装
+python -c "import google.protobuf; print('安装成功！')"
+# 代码运行
+## 首先执行generate_python_pb.sh生成python pb文件
+sh generate_python_pb.sh
+## 然后执行python脚本
+python parse_pb.py
+# 退出虚拟环境
+deactivate
+```
