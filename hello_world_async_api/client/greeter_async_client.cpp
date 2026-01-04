@@ -45,49 +45,42 @@ class GreeterClient {
   explicit GreeterClient(std::shared_ptr<Channel> channel)
       : stub_(Greeter::NewStub(channel)) {}
 
-  // Assembles the client's payload, sends it and presents the response back
-  // from the server.
+  // 组装客户端的有效负载，发送给服务器并呈现服务器的响应
   std::string SayHello(const std::string& user) {
-    // Data we are sending to the server.
+    // 要发送到服务器的数据
     HelloRequest request;
     request.set_name(user);
 
-    // Container for the data we expect from the server.
+    // 期望从服务器接收的数据容器
     HelloReply reply;
 
-    // Context for the client. It could be used to convey extra information to
-    // the server and/or tweak certain RPC behaviors.
+    // 客户端的上下文，可用于向服务器传递额外信息和/或调整某些RPC行为
     ClientContext context;
 
-    // The producer-consumer queue we use to communicate asynchronously with the
-    // gRPC runtime.
+    // 用于与gRPC运行时异步通信的生产者-消费者队列
     CompletionQueue cq;
 
-    // Storage for the status of the RPC upon completion.
+    // 存储RPC完成时的状态
     Status status;
 
     std::unique_ptr<ClientAsyncResponseReader<HelloReply> > rpc(
         stub_->AsyncSayHello(&context, request, &cq));
 
-    // Request that, upon completion of the RPC, "reply" be updated with the
-    // server's response; "status" with the indication of whether the operation
-    // was successful. Tag the request with the integer 1.
+    // 请求在RPC完成时，用服务器的响应更新"reply"，用操作是否成功的指示更新"status"
+    // 使用整数1作为请求的标签
     rpc->Finish(&reply, &status, (void*)1);
     void* got_tag;
     bool ok = false;
-    // Block until the next result is available in the completion queue "cq".
-    // The return value of Next should always be checked. This return value
-    // tells us whether there is any kind of event or the cq_ is shutting down.
+    // 阻塞直到完成队列"cq"中有下一个结果可用
+    // 应始终检查Next的返回值，该返回值告诉我们是否有任何类型的事件或cq_正在关闭
     CHECK(cq.Next(&got_tag, &ok));
 
-    // Verify that the result from "cq" corresponds, by its tag, our previous
-    // request.
+    // 验证来自"cq"的结果是否通过其标签对应于我们之前的请求
     CHECK_EQ(got_tag, (void*)1);
-    // ... and that the request was completed successfully. Note that "ok"
-    // corresponds solely to the request for updates introduced by Finish().
+    // ...并验证请求是否成功完成。注意，"ok"仅对应于由Finish()引入的更新请求
     CHECK(ok);
 
-    // Act upon the status of the actual RPC.
+    // 根据实际RPC的状态采取行动
     if (status.ok()) {
       return reply.message();
     } else {
@@ -96,24 +89,21 @@ class GreeterClient {
   }
 
  private:
-  // Out of the passed in Channel comes the stub, stored here, our view of the
-  // server's exposed services.
+  // 从传入的通道中产生存根，存储在此处，这是我们看到的服务器暴露的服务视图
   std::unique_ptr<Greeter::Stub> stub_;
 };
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
-  // Instantiate the client. It requires a channel, out of which the actual RPCs
-  // are created. This channel models a connection to an endpoint specified by
-  // the argument "--target=" which is the only expected argument.
+  // 实例化客户端。它需要一个通道，实际的RPC调用将通过该通道创建
+  // 该通道模拟到由"--target="参数指定的端点的连接，这是唯一期望的参数
   std::string target_str = absl::GetFlag(FLAGS_target);
-  // We indicate that the channel isn't authenticated (use of
-  // InsecureChannelCredentials()).
+  // 我们指示该通道未经身份验证（使用InsecureChannelCredentials()）
   GreeterClient greeter(
       grpc::CreateChannel(target_str, grpc::InsecureChannelCredentials()));
   std::string user("world");
-  std::string reply = greeter.SayHello(user);  // The actual RPC call!
+  std::string reply = greeter.SayHello(user);  // 实际的RPC调用！
   std::cout << "Greeter received: " << reply << std::endl;
 
   return 0;

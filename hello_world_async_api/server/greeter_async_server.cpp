@@ -46,114 +46,103 @@ class ServerImpl final {
  public:
   ~ServerImpl() {
     server_->Shutdown();
-    // Always shutdown the completion queue after the server.
+    // 总是在服务器之后关闭完成队列。
     cq_->Shutdown();
   }
 
-  // There is no shutdown handling in this code.
+  // 此代码中没有关闭处理逻辑。
   void Run(uint16_t port) {
     std::string server_address = absl::StrFormat("0.0.0.0:%d", port);
 
     ServerBuilder builder;
-    // Listen on the given address without any authentication mechanism.
+    // 在给定地址上监听，不使用任何认证机制。
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-    // Register "service_" as the instance through which we'll communicate with
-    // clients. In this case it corresponds to an *asynchronous* service.
+    // 注册"service_"作为与客户端通信的实例。
+    // 这里对应的是一个*异步*服务。
     builder.RegisterService(&service_);
-    // Get hold of the completion queue used for the asynchronous communication
-    // with the gRPC runtime.
+    // 获取用于与gRPC运行时进行异步通信的完成队列。
     cq_ = builder.AddCompletionQueue();
-    // Finally assemble the server.
+    // 最后组装服务器。
     server_ = builder.BuildAndStart();
     std::cout << "Server listening on " << server_address << std::endl;
 
-    // Proceed to the server's main loop.
+    // 进入服务器主循环。
     HandleRpcs();
   }
 
  private:
-  // Class encompassing the state and logic needed to serve a request.
+  // 包含处理请求所需的状态和逻辑的类。
   class CallData {
    public:
-    // Take in the "service" instance (in this case representing an asynchronous
-    // server) and the completion queue "cq" used for asynchronous communication
-    // with the gRPC runtime.
+    // 接收"service"实例（这里代表异步服务器）和用于与gRPC运行时
+    // 进行异步通信的完成队列"cq"。
     CallData(Greeter::AsyncService* service, ServerCompletionQueue* cq)
         : service_(service), cq_(cq), responder_(&ctx_), status_(CREATE) {
-      // Invoke the serving logic right away.
+      // 立即调用服务逻辑。
       Proceed();
     }
 
     void Proceed() {
       if (status_ == CREATE) {
-        // Make this instance progress to the PROCESS state.
+        // 使此实例进入PROCESS状态。
         status_ = PROCESS;
 
-        // As part of the initial CREATE state, we *request* that the system
-        // start processing SayHello requests. In this request, "this" acts are
-        // the tag uniquely identifying the request (so that different CallData
-        // instances can serve different requests concurrently), in this case
-        // the memory address of this CallData instance.
+        // 作为初始CREATE状态的一部分，我们*请求*系统开始处理SayHello请求。
+        // 在此请求中，"this"作为唯一标识请求的标签（使不同CallData实例可以并发处理不同请求），
+        // 这里是此CallData实例的内存地址。
         service_->RequestSayHello(&ctx_, &request_, &responder_, cq_, cq_,
                                   this);
       } else if (status_ == PROCESS) {
-        // Spawn a new CallData instance to serve new clients while we process
-        // the one for this CallData. The instance will deallocate itself as
-        // part of its FINISH state.
+        // 在处理当前CallData的请求时，生成一个新的CallData实例来服务新客户端。
+        // 该实例将在其FINISH状态时自行释放内存。
         new CallData(service_, cq_);
 
-        // The actual processing.
+        // 实际处理过程。
         std::string prefix("Hello ");
         reply_.set_message(prefix + request_.name());
 
-        // And we are done! Let the gRPC runtime know we've finished, using the
-        // memory address of this instance as the uniquely identifying tag for
-        // the event.
+        // 处理完成！让gRPC运行时知道我们已经完成，
+        // 使用此实例的内存地址作为事件的唯一标识标签。
         status_ = FINISH;
         responder_.Finish(reply_, Status::OK, this);
       } else {
         CHECK_EQ(status_, FINISH);
-        // Once in the FINISH state, deallocate ourselves (CallData).
+        // 进入FINISH状态后，自行释放内存（CallData）。
         delete this;
       }
     }
 
    private:
-    // The means of communication with the gRPC runtime for an asynchronous
-    // server.
+    // 与gRPC运行时进行异步服务器通信的方式。
     Greeter::AsyncService* service_;
-    // The producer-consumer queue where for asynchronous server notifications.
+    // 用于异步服务器通知的生产者-消费者队列。
     ServerCompletionQueue* cq_;
-    // Context for the rpc, allowing to tweak aspects of it such as the use
-    // of compression, authentication, as well as to send metadata back to the
-    // client.
+    // RPC的上下文，允许调整其各方面设置，如使用压缩、认证，以及向客户端发送元数据。
     ServerContext ctx_;
 
-    // What we get from the client.
+    // 从客户端接收的内容。
     HelloRequest request_;
-    // What we send back to the client.
+    // 发送回客户端的内容。
     HelloReply reply_;
 
-    // The means to get back to the client.
+    // 用于响应客户端的方式。
     ServerAsyncResponseWriter<HelloReply> responder_;
 
-    // Let's implement a tiny state machine with the following states.
+    // 用一个微型状态机实现以下状态。
     enum CallStatus { CREATE, PROCESS, FINISH };
-    CallStatus status_;  // The current serving state.
+    CallStatus status_;  // 当前服务状态。
   };
 
-  // This can be run in multiple threads if needed.
+  // 如果需要，可以在多个线程中运行。
   void HandleRpcs() {
-    // Spawn a new CallData instance to serve new clients.
+    // 生成一个新的CallData实例来服务新客户端。
     new CallData(&service_, cq_.get());
-    void* tag;  // uniquely identifies a request.
+    void* tag;  // 唯一标识一个请求。
     bool ok;
     while (true) {
-      // Block waiting to read the next event from the completion queue. The
-      // event is uniquely identified by its tag, which in this case is the
-      // memory address of a CallData instance.
-      // The return value of Next should always be checked. This return value
-      // tells us whether there is any kind of event or cq_ is shutting down.
+      // 阻塞等待从完成队列中读取下一个事件。
+      // 事件由其标签唯一标识，这里是一个CallData实例的内存地址。
+      // 应始终检查Next的返回值，该值告诉我们是否有任何事件或cq_是否正在关闭。
       CHECK(cq_->Next(&tag, &ok));
       CHECK(ok);
       static_cast<CallData*>(tag)->Proceed();
