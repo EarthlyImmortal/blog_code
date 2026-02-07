@@ -53,9 +53,11 @@ using routeguide::RouteNote;
 using routeguide::RouteSummary;
 using std::chrono::system_clock;
 
+// 将数值转换为弧度
 float ConvertToRadians(float num) { return num * 3.1415926 / 180; }
 
-// The formula is based on http://mathforum.org/library/drmath/view/51879.html
+// 该公式基于 http://mathforum.org/library/drmath/view/51879.html
+// 计算两点之间的距离
 float GetDistance(const Point& start, const Point& end) {
   const float kCoordFactor = 10000000.0;
   float lat_1 = start.latitude() / kCoordFactor;
@@ -70,11 +72,12 @@ float GetDistance(const Point& start, const Point& end) {
   float a = pow(sin(delta_lat_rad / 2), 2) +
             cos(lat_rad_1) * cos(lat_rad_2) * pow(sin(delta_lon_rad / 2), 2);
   float c = 2 * atan2(sqrt(a), sqrt(1 - a));
-  int R = 6371000;  // metres
+  int R = 6371000;  // 单位为米
 
   return R * c;
 }
 
+// 根据给定的点，从特征列表中查找对应的特征名称
 std::string GetFeatureName(const Point& point,
                            const std::vector<Feature>& feature_list) {
   for (const Feature& f : feature_list) {
@@ -86,36 +89,41 @@ std::string GetFeatureName(const Point& point,
   return "";
 }
 
+// RouteGuide 服务的实现类，使用回调服务 API
 class RouteGuideImpl final : public RouteGuide::CallbackService {
  public:
   explicit RouteGuideImpl(const std::string& db) {
     routeguide::ParseDb(db, &feature_list_);
   }
 
+  // 简单 RPC 方法实现：获取给定点的特征
   grpc::ServerUnaryReactor* GetFeature(grpc::CallbackServerContext* context,
                                        const Point* point,
                                        Feature* feature) override {
+    // 内部反应器类，处理请求和响应
     class Reactor : public grpc::ServerUnaryReactor {
      public:
       Reactor(const Point& point, const std::vector<Feature>& feature_list,
               Feature* feature) {
         feature->set_name(GetFeatureName(point, feature_list));
         *feature->mutable_location() = point;
-        Finish(grpc::Status::OK);
+        Finish(grpc::Status::OK); // 完成 RPC 并返回状态
       }
 
      private:
+      // RPC 完成时调用
       void OnDone() override {
         LOG(INFO) << "RPC Completed";
         delete this;
       }
 
+      // RPC 被取消时调用
       void OnCancel() override { LOG(ERROR) << "RPC Cancelled"; }
     };
     return new Reactor(*point, feature_list_, feature);
   }
 
-  /* Alternate simple implementation of GetFeature that uses the DefaultReactor.
+  /* 使用 DefaultReactor 实现 GetFeature 的另一种简单方法
   grpc::ServerUnaryReactor* GetFeature(CallbackServerContext* context,
                                        const Point* point,
                                        Feature* feature) override {
@@ -127,9 +135,11 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
   }
 */
 
+  // 服务器端流式 RPC 方法实现：列出给定矩形区域内的特征
   grpc::ServerWriteReactor<Feature>* ListFeatures(
       CallbackServerContext* context,
       const routeguide::Rectangle* rectangle) override {
+    // 内部反应器类，用于流式写入多个特征
     class Lister : public grpc::ServerWriteReactor<Feature> {
      public:
       Lister(const routeguide::Rectangle* rectangle,
@@ -144,14 +154,15 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
                                rectangle->hi().latitude())),
             feature_list_(feature_list),
             next_feature_(feature_list_->begin()) {
-        NextWrite();
+        NextWrite(); // 开始写入过程
       }
 
+      // 单个写入操作完成时调用
       void OnWriteDone(bool ok) override {
         if (!ok) {
           Finish(Status(grpc::StatusCode::UNKNOWN, "Unexpected Failure"));
         }
-        NextWrite();
+        NextWrite(); // 继续下一个写入
       }
 
       void OnDone() override {
@@ -162,6 +173,7 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
       void OnCancel() override { LOG(ERROR) << "RPC Cancelled"; }
 
      private:
+      // 准备并发送下一个可用的特征
       void NextWrite() {
         while (next_feature_ != feature_list_->end()) {
           const Feature& f = *next_feature_;
@@ -170,11 +182,11 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
               f.location().longitude() <= right_ &&
               f.location().latitude() >= bottom_ &&
               f.location().latitude() <= top_) {
-            StartWrite(&f);
+            StartWrite(&f); // 将特征写入流
             return;
           }
         }
-        // Didn't write anything, all is done.
+        // 没有可写内容，全部完成
         Finish(Status::OK);
       }
       const long left_;
@@ -187,17 +199,20 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
     return new Lister(rectangle, &feature_list_);
   }
 
+  // 客户端流式 RPC 方法实现：记录路径并返回摘要
   grpc::ServerReadReactor<Point>* RecordRoute(CallbackServerContext* context,
                                               RouteSummary* summary) override {
+    // 内部反应器类，用于流式读取点
     class Recorder : public grpc::ServerReadReactor<Point> {
      public:
       Recorder(RouteSummary* summary, const std::vector<Feature>* feature_list)
           : start_time_(system_clock::now()),
             summary_(summary),
             feature_list_(feature_list) {
-        StartRead(&point_);
+        StartRead(&point_); // 开始读取客户端发送的点
       }
 
+      // 单个读取操作完成时调用
       void OnReadDone(bool ok) override {
         if (ok) {
           point_count_++;
@@ -208,8 +223,9 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
             distance_ += GetDistance(previous_, point_);
           }
           previous_ = point_;
-          StartRead(&point_);
+          StartRead(&point_); // 继续读取下一个点
         } else {
+          // 客户端流结束，设置摘要并完成 RPC
           summary_->set_point_count(point_count_);
           summary_->set_feature_count(feature_count_);
           summary_->set_distance(static_cast<long>(distance_));
@@ -240,24 +256,26 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
     return new Recorder(summary, &feature_list_);
   }
 
+  // 双向流式 RPC 方法实现：路由聊天，双方独立发送和接收路由注释
   grpc::ServerBidiReactor<RouteNote, RouteNote>* RouteChat(
       CallbackServerContext* context) override {
+    // 内部反应器类，用于双向流式通信
     class Chatter : public grpc::ServerBidiReactor<RouteNote, RouteNote> {
      public:
       Chatter(absl::Mutex* mu, std::vector<RouteNote>* received_notes)
           : mu_(mu), received_notes_(received_notes) {
-        StartRead(&note_);
+        StartRead(&note_); // 开始读取客户端发送的注释
       }
 
+      // 读取操作完成时调用
       void OnReadDone(bool ok) override {
         if (ok) {
-          // Unlike the other example in this directory that's not using
-          // the reactor pattern, we can't grab a local lock to secure the
-          // access to the notes vector, because the reactor will most likely
-          // make us jump threads, so we'll have to use a different locking
-          // strategy. We'll grab the lock locally to build a copy of the
-          // list of nodes we're going to send, then we'll grab the lock
-          // again to append the received note to the existing vector.
+          // 与此目录中未使用反应器模式的其他示例不同，
+          // 我们无法获取本地锁来保护对注释向量的访问，
+          // 因为反应器很可能会使我们跳转到不同线程，
+          // 所以我们必须使用不同的锁定策略。
+          // 我们将在本地获取锁以构建要发送的注释列表副本，
+          // 然后再次获取锁以将接收到的注释追加到现有向量。
           mu_->Lock();
           std::copy_if(received_notes_->begin(), received_notes_->end(),
                        std::back_inserter(to_send_notes_),
@@ -269,7 +287,7 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
                        });
           mu_->Unlock();
           notes_iterator_ = to_send_notes_.begin();
-          NextWrite();
+          NextWrite(); // 开始向客户端发送相关注释
         } else {
           Finish(Status::OK);
         }
@@ -284,11 +302,13 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
       void OnCancel() override { LOG(ERROR) << "RPC Cancelled"; }
 
      private:
+      // 准备并发送下一个注释
       void NextWrite() {
         if (notes_iterator_ != to_send_notes_.end()) {
           StartWrite(&*notes_iterator_);
           notes_iterator_++;
         } else {
+          // 所有相关注释已发送，将接收到的注释保存并继续读取
           mu_->Lock();
           received_notes_->push_back(note_);
           mu_->Unlock();
@@ -311,6 +331,7 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
   std::vector<RouteNote> received_notes_ ABSL_GUARDED_BY(mu_);
 };
 
+// 运行 gRPC 服务器
 void RunServer(const std::string& db_path) {
   std::string server_address("0.0.0.0:50051");
   RouteGuideImpl service(db_path);
@@ -320,14 +341,14 @@ void RunServer(const std::string& db_path) {
   builder.RegisterService(&service);
   std::unique_ptr<Server> server(builder.BuildAndStart());
   LOG(INFO) << "Server listening on " << server_address;
-  server->Wait();
+  server->Wait(); // 阻塞等待服务器结束
 }
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   absl::SetStderrThreshold(absl::LogSeverityAtLeast::kInfo);
   absl::InitializeLog();
-  // Expect only arg: --db_path=path/to/route_guide_db.json.
+  // 预期只有一个参数：--db_path=path/to/route_guide_db.json
   std::string db = routeguide::GetDbFileContent(argc, argv);
   RunServer(db);
 
