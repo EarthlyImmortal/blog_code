@@ -113,12 +113,12 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
      private:
       // RPC 完成时调用
       void OnDone() override {
-        LOG(INFO) << "RPC Completed";
+        LOG(INFO) << "GetFeature RPC Completed";
         delete this;
       }
 
       // RPC 被取消时调用
-      void OnCancel() override { LOG(ERROR) << "RPC Cancelled"; }
+      void OnCancel() override { LOG(ERROR) << "GetFeature RPC Cancelled"; }
     };
     return new Reactor(*point, feature_list_, feature);
   }
@@ -161,16 +161,17 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
       void OnWriteDone(bool ok) override {
         if (!ok) {
           Finish(Status(grpc::StatusCode::UNKNOWN, "Unexpected Failure"));
+          return;
         }
         NextWrite(); // 继续下一个写入
       }
 
       void OnDone() override {
-        LOG(INFO) << "RPC Completed";
+        LOG(INFO) << "ListFeatures RPC Completed";
         delete this;
       }
 
-      void OnCancel() override { LOG(ERROR) << "RPC Cancelled"; }
+      void OnCancel() override { LOG(ERROR) << "ListFeatures RPC Cancelled"; }
 
      private:
       // 准备并发送下一个可用的特征
@@ -237,11 +238,11 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
       }
 
       void OnDone() override {
-        LOG(INFO) << "RPC Completed";
+        LOG(INFO) << "RecordRoute RPC Completed";
         delete this;
       }
 
-      void OnCancel() override { LOG(ERROR) << "RPC Cancelled"; }
+      void OnCancel() override { LOG(ERROR) << "RecordRoute RPC Cancelled"; }
 
      private:
       system_clock::time_point start_time_;
@@ -295,11 +296,11 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
       void OnWriteDone(bool /*ok*/) override { NextWrite(); }
 
       void OnDone() override {
-        LOG(INFO) << "RPC Completed";
+        LOG(INFO) << "RouteChat RPC Completed";
         delete this;
       }
 
-      void OnCancel() override { LOG(ERROR) << "RPC Cancelled"; }
+      void OnCancel() override { LOG(ERROR) << "RouteChat RPC Cancelled"; }
 
      private:
       // 准备并发送下一个注释
