@@ -161,6 +161,7 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
       void OnWriteDone(bool ok) override {
         if (!ok) {
           Finish(Status(grpc::StatusCode::UNKNOWN, "Unexpected Failure"));
+          // 出现异常, 提前返回, 避免崩溃
           return;
         }
         NextWrite(); // 继续下一个写入
@@ -293,7 +294,14 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
           Finish(Status::OK);
         }
       }
-      void OnWriteDone(bool /*ok*/) override { NextWrite(); }
+      void OnWriteDone(bool ok) override { 
+          if (!ok) {
+          Finish(Status(grpc::StatusCode::UNKNOWN, "Unexpected Failure"));
+          // 出现异常, 提前返回, 避免崩溃
+          return;
+        }
+        NextWrite(); 
+      }
 
       void OnDone() override {
         LOG(INFO) << "RouteChat RPC Completed";
