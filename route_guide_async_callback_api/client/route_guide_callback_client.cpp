@@ -160,15 +160,13 @@ class RouteGuideClient {
             feature_distribution_(0, feature_list->size() - 1),
             delay_distribution_(500, 1500) {
         stub->async()->RecordRoute(&context_, &stats_, this);
-        // Use a hold since some StartWrites are invoked indirectly from a
-        // delayed lambda in OnWriteDone rather than directly from the reaction
-        // itself
+        // 使用持有（hold），因为某些 StartWrites 是通过 OnWriteDone 中的延迟 lambda 间接调用的，而不是直接从反应本身调用
         AddHold();
         NextWrite();
         StartCall();
       }
       void OnWriteDone(bool ok) override {
-        // Delay and then do the next write or WritesDone
+        // 延迟然后执行下一次写入或 WritesDone
         alarm_.Set(
             std::chrono::system_clock::now() +
                 std::chrono::milliseconds(delay_distribution_(generator_)),
@@ -348,7 +346,7 @@ class RouteGuideClient {
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
-  // Expect only arg: --db_path=path/to/route_guide_db.json.
+  // 期望只有一个参数：--db_path=path/to/route_guide_db.json。
   std::string db = routeguide::GetDbFileContent(argc, argv);
   RouteGuideClient guide(
       grpc::CreateChannel("localhost:50051",
