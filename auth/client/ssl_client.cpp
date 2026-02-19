@@ -45,21 +45,19 @@ class GreeterClient {
   GreeterClient(std::shared_ptr<Channel> channel)
       : stub_(Greeter::NewStub(channel)) {}
 
-  // Assembles the client's payload, sends it and presents the response back
-  // from the server.
+  // 组装客户端的负载，发送它，并呈现来自服务器的响应。
   std::string SayHello(const std::string& user) {
-    // Data we are sending to the server.
+    // 我们发送给服务器的数据。
     HelloRequest request;
     request.set_name(user);
 
-    // Container for the data we expect from the server.
+    // 用于存放我们从服务器期望的数据的容器。
     HelloReply reply;
 
-    // Context for the client. It could be used to convey extra information to
-    // the server and/or tweak certain RPC behaviors.
+    // 客户端的上下文。它可用于向服务器传递额外信息和/或调整某些 RPC 行为。
     ClientContext context;
 
-    // The actual RPC.
+    // 实际的 RPC。
     std::mutex mu;
     std::condition_variable cv;
     bool done = false;
@@ -77,7 +75,7 @@ class GreeterClient {
       cv.wait(lock);
     }
 
-    // Act upon its status.
+    // 根据其状态采取行动。
     if (status.ok()) {
       return reply.message();
     } else {
@@ -96,15 +94,13 @@ constexpr char kRootCertificate[] = "../../credentials/root.crt";
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
-  // Instantiate the client. It requires a channel, out of which the actual RPCs
-  // are created. This channel models a connection to an endpoint specified by
-  // the argument "--target=" which is the only expected argument.
+  // 实例化客户端。它需要一个通道，实际 RPC 由此创建。此通道模拟连接到由参数 "--target=" 指定的端点，这是唯一的预期参数。
   std::string target_str =
       absl::StrFormat("localhost:%d", absl::GetFlag(FLAGS_port));
-  // Build a SSL options for the channel
+  // 为通道构建 SSL 选项
   grpc::SslCredentialsOptions ssl_options;
   ssl_options.pem_root_certs = LoadStringFromFile(kRootCertificate);
-  // Create a channel with SSL credentials
+  // 使用 SSL 凭证创建通道
   GreeterClient greeter(
       grpc::CreateChannel(target_str, grpc::SslCredentials(ssl_options)));
   std::string user("world");

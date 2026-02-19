@@ -37,7 +37,7 @@ using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloRequest;
 
-// Logic and data behind the server's behavior.
+// 服务器行为背后的逻辑和数据。
 class GreeterServiceImpl final : public Greeter::CallbackService {
   ServerUnaryReactor* SayHello(CallbackServerContext* context,
                                const HelloRequest* request,
@@ -58,23 +58,21 @@ void RunServer(uint16_t port) {
   std::string server_address = absl::StrFormat("0.0.0.0:%d", port);
   GreeterServiceImpl service;
   ServerBuilder builder;
-  // Load SSL credentials and build a SSL credential options
+  // 加载 SSL 凭据并构建 SSL 凭据选项
   grpc::SslServerCredentialsOptions::PemKeyCertPair key_cert_pair = {
       LoadStringFromFile(kServerKeyPath), LoadStringFromFile(kServerCertPath)};
   grpc::SslServerCredentialsOptions ssl_options;
   ssl_options.pem_key_cert_pairs.emplace_back(key_cert_pair);
-  // Listen on the given address with SSL credentials
+  // 使用 SSL 凭据在给定地址上监听
   builder.AddListeningPort(server_address,
                            grpc::SslServerCredentials(ssl_options));
-  // Register "service" as the instance through which we'll communicate with
-  // clients. In this case it corresponds to an *synchronous* service.
+  // 将“service”注册为我们将通过其与客户端通信的实例。在这种情况下，它对应于一个*同步*服务。
   builder.RegisterService(&service);
-  // Finally assemble the server.
+  // 最后组装服务器。
   std::unique_ptr<Server> server(builder.BuildAndStart());
   std::cout << "Server listening on " << server_address << std::endl;
 
-  // Wait for the server to shutdown. Note that some other thread must be
-  // responsible for shutting down the server for this call to ever return.
+  // 等待服务器关闭。注意，必须由其他线程负责关闭服务器，此调用才能返回。
   server->Wait();
 }
 
