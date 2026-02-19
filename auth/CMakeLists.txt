@@ -64,5 +64,7 @@ set(COMMON_CMAKE_FILE "${CMAKE_SOURCE_DIR}/cmake_file/common_cmake.cmake")
 
 # 包含子目录
 add_subdirectory(proto)
-add_subdirectory(server)
-add_subdirectory(client)
+add_subdirectory(server_withssl)
+add_subdirectory(client_withssl)
+add_subdirectory(server_nossl)
+add_subdirectory(client_nossl)
