@@ -55,6 +55,9 @@ class GreeterServiceImpl final : public Greeter::CallbackService
 constexpr char kServerCertPath[] = "../../credentials/localhost.crt";
 constexpr char kServerKeyPath[] = "../../credentials/localhost.key";
 
+// constexpr char kServerCertPath[] = "../../my_credentials/localhost.crt";
+// constexpr char kServerKeyPath[] = "../../my_credentials/localhost.key";
+
 void RunServer(uint16_t port)
 {
     std::string server_address = absl::StrFormat("0.0.0.0:%d", port);

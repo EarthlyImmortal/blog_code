@@ -97,6 +97,7 @@ class GreeterClient
 };
 
 constexpr char kRootCertificate[] = "../../credentials/root.crt";
+// constexpr char kRootCertificate[] = "../../my_credentials/root.crt";
 
 int main(int argc, char** argv)
 {
