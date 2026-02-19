@@ -22,13 +22,15 @@
 #include <iostream>
 #include <sstream>
 
-std::string LoadStringFromFile(std::string path) {
-  std::ifstream file(path);
-  if (!file.is_open()) {
-    std::cout << "Failed to open " << path << std::endl;
-    abort();
-  }
-  std::stringstream sstr;
-  sstr << file.rdbuf();
-  return sstr.str();
+std::string LoadStringFromFile(std::string path)
+{
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        std::cout << "Failed to open " << path << std::endl;
+        abort();
+    }
+    std::stringstream sstr;
+    sstr << file.rdbuf();
+    return sstr.str();
 }
