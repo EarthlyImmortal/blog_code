@@ -62,6 +62,21 @@ set(ALL_LIBS
 # 设置公共cmake文件路径
 set(COMMON_CMAKE_FILE "${CMAKE_SOURCE_DIR}/cmake_file/common_cmake.cmake")
 
+# 设置编译选项
+set(COMPILE_OPTIONS 
+  -O2         # 标准优化
+  -Werror     # 视警告为错误
+  -Wall       # 启用大多数常见警告
+  -Wextra     # 启用额外的警告
+  -pedantic   # 强制遵循标准，发出所有 ISO C++ 禁止的警告
+)
+
+# 添加编译选项
+add_compile_options(${COMPILE_OPTIONS})
+
+# 输出编译选项
+message(STATUS "全局编译选项: ${COMPILE_OPTIONS}")
+
 # 包含子目录
 add_subdirectory(proto)
 add_subdirectory(server_withssl)
