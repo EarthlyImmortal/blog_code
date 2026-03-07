@@ -22,7 +22,8 @@
 #include <string>
 #include <vector>
 
-namespace routeguide {
+namespace routeguide
+{
 class Feature;
 
 std::string GetDbFileContent(int argc, char** argv);
