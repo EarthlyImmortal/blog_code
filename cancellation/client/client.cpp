@@ -37,8 +37,7 @@ using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloRequest;
 
-// Requests each key in the vector and displays the key and its corresponding
-// value as a pair.
+// 请求向量中的每个键，并显示键及其对应的值作为一对。
 class KeyValueStoreClient
     : public grpc::ClientBidiReactor<HelloRequest, HelloReply>
 {
@@ -65,7 +64,7 @@ class KeyValueStoreClient
             }
             else
             {
-                // Cancel after sending 10 messages
+                // 发送10条消息后取消
                 context_.TryCancel();
             }
         }
@@ -85,7 +84,7 @@ class KeyValueStoreClient
         {
             if (status.error_code() == StatusCode::CANCELLED)
             {
-                // Eventually client will know here that call is cancelled.
+                // 最终客户端会在此处知道调用已取消。
                 std::cout << "RPC Cancelled!" << std::endl;
             }
             else
@@ -123,10 +122,7 @@ int main(int argc, char** argv)
 {
     absl::ParseCommandLine(argc, argv);
     absl::InitializeLog();
-    // Instantiate the client. It requires a channel, out of which the actual
-    // RPCs are created. This channel models a connection to an endpoint
-    // specified by the argument "--target=" which is the only expected
-    // argument.
+    // 实例化客户端。它需要一个通道，实际的RPC由此创建。该通道模拟到由参数"--target="指定的端点的连接，这是唯一期望的参数。
     std::string target_str = absl::GetFlag(FLAGS_target);
     KeyValueStoreClient client(
         grpc::CreateChannel(target_str, grpc::InsecureChannelCredentials()));

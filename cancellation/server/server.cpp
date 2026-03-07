@@ -36,7 +36,7 @@ using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloRequest;
 
-// Logic behind the server's behavior.
+// 服务器行为背后的逻辑.
 class KeyValueStoreServiceImpl final : public Greeter::CallbackService
 {
     ServerBidiReactor<HelloRequest, HelloReply>* SayHelloBidiStream(
@@ -52,7 +52,7 @@ class KeyValueStoreServiceImpl final : public Greeter::CallbackService
             {
                 if (!ok)
                 {
-                    // Client cancelled it
+                    // 客户端取消了rpc
                     std::cout << "OnReadDone Cancelled!" << std::endl;
                     return Finish(grpc::Status::CANCELLED);
                 }
@@ -64,7 +64,7 @@ class KeyValueStoreServiceImpl final : public Greeter::CallbackService
             {
                 if (!ok)
                 {
-                    // Client cancelled it
+                    // 客户端取消了rpc
                     std::cout << "OnWriteDone Cancelled!" << std::endl;
                     return Finish(grpc::Status::CANCELLED);
                 }
@@ -88,17 +88,15 @@ void RunServer(uint16_t port)
     KeyValueStoreServiceImpl service;
 
     ServerBuilder builder;
-    // Listen on the given address without any authentication mechanism.
+    // 在给定地址上监听，不采用任何认证机制。
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-    // Register "service" as the instance through which we'll communicate with
-    // clients. In this case it corresponds to an *synchronous* service.
+    // 将 "service" 注册为与客户端通信的实例。这里对应的是一个*同步*服务。
     builder.RegisterService(&service);
-    // Finally assemble the server.
+    // 最后组装服务器。
     std::unique_ptr<Server> server(builder.BuildAndStart());
     std::cout << "Server listening on " << server_address << std::endl;
 
-    // Wait for the server to shutdown. Note that some other thread must be
-    // responsible for shutting down the server for this call to ever return.
+    // 等待服务器关闭。注意：必须由其他线程负责关闭服务器，此调用才会返回。
     server->Wait();
 }
 
