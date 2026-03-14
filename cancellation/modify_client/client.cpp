@@ -66,6 +66,8 @@ class KeyValueStoreClient
             {
                 // 发送10条消息后取消
                 context_.TryCancel();
+                // // 发送正常结束
+                // StartWritesDone();
             }
         }
     }
@@ -92,6 +94,11 @@ class KeyValueStoreClient
                 std::cout << "RPC Failed: " << status.error_code() << ": "
                           << status.error_message() << std::endl;
             }
+        }
+        else
+        {
+            // 正常结束
+            std::cout << "RPC Finished!" << std::endl;
         }
         std::unique_lock<std::mutex> l(mu_);
         done_ = true;

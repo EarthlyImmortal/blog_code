@@ -42,19 +42,30 @@ class KeyValueStoreServiceImpl final : public Greeter::CallbackService
     ServerBidiReactor<HelloRequest, HelloReply>* SayHelloBidiStream(
         CallbackServerContext* context) override
     {
-        std::ignore = context;  // 忽略未使用变量, 避免编译报错
         class Reactor : public ServerBidiReactor<HelloRequest, HelloReply>
         {
            public:
-            explicit Reactor() { StartRead(&request_); }
+            explicit Reactor(CallbackServerContext* ctx) : context_(ctx)
+            {
+                StartRead(&request_);
+            }
 
             void OnReadDone(bool ok) override
             {
                 if (!ok)
                 {
                     // 客户端取消了rpc
-                    std::cout << "OnReadDone Cancelled!" << std::endl;
-                    return Finish(grpc::Status::CANCELLED);
+                    if (context_->IsCancelled())
+                    {
+                        std::cout << "OnReadDone Cancelled!" << std::endl;
+                        Finish(grpc::Status::CANCELLED);
+                    }
+                    else
+                    {
+                        std::cout << "OnReadDone Finish Read!" << std::endl;
+                        Finish(grpc::Status::OK);
+                    }
+                    return;
                 }
                 response_.set_message(absl::StrCat(request_.name(), " Ack"));
                 StartWrite(&response_);
@@ -65,8 +76,18 @@ class KeyValueStoreServiceImpl final : public Greeter::CallbackService
                 if (!ok)
                 {
                     // 客户端取消了rpc
-                    std::cout << "OnWriteDone Cancelled!" << std::endl;
-                    return Finish(grpc::Status::CANCELLED);
+                    if (context_->IsCancelled())
+                    {
+                        std::cout << "OnWriteDone Cancelled!" << std::endl;
+                        Finish(grpc::Status::CANCELLED);
+                    }
+                    else
+                    {
+                        std::cout << "OnWriteDone Failed!" << std::endl;
+                        Finish(Status(grpc::StatusCode::UNKNOWN,
+                                      "Unexpected Failure"));
+                    }
+                    return;
                 }
                 StartRead(&request_);
             }
@@ -74,11 +95,12 @@ class KeyValueStoreServiceImpl final : public Greeter::CallbackService
             void OnDone() override { delete this; }
 
            private:
+            CallbackServerContext* context_;
             HelloRequest request_;
             HelloReply response_;
         };
 
-        return new Reactor();
+        return new Reactor(context);
     }
 };
 
