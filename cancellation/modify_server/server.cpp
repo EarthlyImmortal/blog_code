@@ -96,7 +96,7 @@ class KeyValueStoreServiceImpl final : public Greeter::CallbackService
 
             void OnCancel() override
             {
-                std::cout << "RouteChat RPC Cancelled" << std::endl;
+                std::cout << "OnCancel, RPC Cancelled" << std::endl;
             }
 
            private:
