@@ -39,27 +39,25 @@ class GreeterClient {
   GreeterClient(std::shared_ptr<Channel> channel)
       : stub_(Greeter::NewStub(channel)) {}
 
-  // Assembles the client's payload, sends it and presents the response back
-  // from the server.
+  // 组装客户端负载，发送请求并呈现来自服务器的响应。
   std::string SayHello(const std::string& user) {
-    // Data we are sending to the server.
+    // 发送到服务器的数据。
     HelloRequest request;
     request.set_name(user);
 
-    // Container for the data we expect from the server.
+    // 存放来自服务器预期数据的容器。
     HelloReply reply;
 
-    // Context for the client. It could be used to convey extra information to
-    // the server and/or tweak certain RPC behaviors.
+    // 客户端上下文。可用于向服务器传递额外信息和/或调整特定RPC行为。
     ClientContext context;
 
-    // Overwrite the call's compression algorithm to DEFLATE.
+    // 将调用的压缩算法覆盖为DEFLATE。
     context.set_compression_algorithm(GRPC_COMPRESS_DEFLATE);
 
-    // The actual RPC.
+    // 实际RPC调用。
     Status status = stub_->SayHello(&context, request, &reply);
 
-    // Act upon its status.
+    // 根据状态进行处理。
     if (status.ok()) {
       return reply.message();
     } else {
@@ -76,12 +74,11 @@ class GreeterClient {
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
-  // Instantiate the client. It requires a channel, out of which the actual RPCs
-  // are created. This channel models a connection to an endpoint (in this case,
-  // localhost at port 50051). We indicate that the channel isn't authenticated
-  // (use of InsecureChannelCredentials()).
+  // 实例化客户端。需要提供一个通道，实际RPC通过该通道创建。
+  // 该通道模拟到端点的连接（本例中为localhost:50051）。
+  // 我们指明通道未经过身份验证（使用InsecureChannelCredentials()）。
   ChannelArguments args;
-  // Set the default compression algorithm for the channel.
+  // 设置通道的默认压缩算法。
   args.SetCompressionAlgorithm(GRPC_COMPRESS_GZIP);
   GreeterClient greeter(grpc::CreateCustomChannel(
       "localhost:50051", grpc::InsecureChannelCredentials(), args));

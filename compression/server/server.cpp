@@ -34,11 +34,11 @@ using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloRequest;
 
-// Logic and data behind the server's behavior.
+// 服务器行为背后的逻辑和数据。
 class GreeterServiceImpl final : public Greeter::Service {
   Status SayHello(ServerContext* context, const HelloRequest* request,
                   HelloReply* reply) override {
-    // Overwrite the call's compression algorithm to DEFLATE.
+    // 将本次调用的压缩算法覆盖为 DEFLATE。
     context->set_compression_algorithm(GRPC_COMPRESS_DEFLATE);
     std::string prefix("Hello ");
     reply->set_message(prefix + request->name());
@@ -51,19 +51,17 @@ void RunServer() {
   GreeterServiceImpl service;
 
   ServerBuilder builder;
-  // Set the default compression algorithm for the server.
+  // 设置服务器的默认压缩算法。
   builder.SetDefaultCompressionAlgorithm(GRPC_COMPRESS_GZIP);
-  // Listen on the given address without any authentication mechanism.
+  // 监听指定地址，不使用任何认证机制。
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-  // Register "service" as the instance through which we'll communicate with
-  // clients. In this case it corresponds to an *synchronous* service.
+  // 注册 "service" 作为与客户端通信的实例。此处对应的是 *同步* 服务。
   builder.RegisterService(&service);
-  // Finally assemble the server.
+  // 最后组装服务器。
   std::unique_ptr<Server> server(builder.BuildAndStart());
   std::cout << "Server listening on " << server_address << std::endl;
 
-  // Wait for the server to shutdown. Note that some other thread must be
-  // responsible for shutting down the server for this call to ever return.
+  // 等待服务器关闭。注意，必须由其他线程负责关闭服务器，此调用才会返回。
   server->Wait();
 }
 
