@@ -1,4 +1,5 @@
 #include "lz4_helper.h"
+
 #include <vector>
 
 std::string CompressWithLZ4(const std::string& input, int* compressed_size_out)

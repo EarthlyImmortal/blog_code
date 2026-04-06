@@ -34,57 +34,65 @@ using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloRequest;
 
-class GreeterClient {
- public:
-  GreeterClient(std::shared_ptr<Channel> channel)
-      : stub_(Greeter::NewStub(channel)) {}
-
-  // 组装客户端负载，发送请求并呈现来自服务器的响应。
-  std::string SayHello(const std::string& user) {
-    // 发送到服务器的数据。
-    HelloRequest request;
-    request.set_name(user);
-
-    // 存放来自服务器预期数据的容器。
-    HelloReply reply;
-
-    // 客户端上下文。可用于向服务器传递额外信息和/或调整特定RPC行为。
-    ClientContext context;
-
-    // 将调用的压缩算法覆盖为DEFLATE。
-    context.set_compression_algorithm(GRPC_COMPRESS_DEFLATE);
-
-    // 实际RPC调用。
-    Status status = stub_->SayHello(&context, request, &reply);
-
-    // 根据状态进行处理。
-    if (status.ok()) {
-      return reply.message();
-    } else {
-      std::cout << status.error_code() << ": " << status.error_message()
-                << std::endl;
-      return "RPC failed";
+class GreeterClient
+{
+   public:
+    GreeterClient(std::shared_ptr<Channel> channel)
+        : stub_(Greeter::NewStub(channel))
+    {
     }
-  }
 
- private:
-  std::unique_ptr<Greeter::Stub> stub_;
+    // 组装客户端负载，发送请求并呈现来自服务器的响应。
+    std::string SayHello(const std::string& user)
+    {
+        // 发送到服务器的数据。
+        HelloRequest request;
+        request.set_name(user);
+
+        // 存放来自服务器预期数据的容器。
+        HelloReply reply;
+
+        // 客户端上下文。可用于向服务器传递额外信息和/或调整特定RPC行为。
+        ClientContext context;
+
+        // 将调用的压缩算法覆盖为DEFLATE。
+        context.set_compression_algorithm(GRPC_COMPRESS_DEFLATE);
+
+        // 实际RPC调用。
+        Status status = stub_->SayHello(&context, request, &reply);
+
+        // 根据状态进行处理。
+        if (status.ok())
+        {
+            return reply.message();
+        }
+        else
+        {
+            std::cout << status.error_code() << ": " << status.error_message()
+                      << std::endl;
+            return "RPC failed";
+        }
+    }
+
+   private:
+    std::unique_ptr<Greeter::Stub> stub_;
 };
 
-int main(int argc, char** argv) {
-  absl::ParseCommandLine(argc, argv);
-  absl::InitializeLog();
-  // 实例化客户端。需要提供一个通道，实际RPC通过该通道创建。
-  // 该通道模拟到端点的连接（本例中为localhost:50051）。
-  // 我们指明通道未经过身份验证（使用InsecureChannelCredentials()）。
-  ChannelArguments args;
-  // 设置通道的默认压缩算法。
-  args.SetCompressionAlgorithm(GRPC_COMPRESS_GZIP);
-  GreeterClient greeter(grpc::CreateCustomChannel(
-      "localhost:50051", grpc::InsecureChannelCredentials(), args));
-  std::string user("world world world world");
-  std::string reply = greeter.SayHello(user);
-  std::cout << "Greeter received: " << reply << std::endl;
+int main(int argc, char** argv)
+{
+    absl::ParseCommandLine(argc, argv);
+    absl::InitializeLog();
+    // 实例化客户端。需要提供一个通道，实际RPC通过该通道创建。
+    // 该通道模拟到端点的连接（本例中为localhost:50051）。
+    // 我们指明通道未经过身份验证（使用InsecureChannelCredentials()）。
+    ChannelArguments args;
+    // 设置通道的默认压缩算法。
+    args.SetCompressionAlgorithm(GRPC_COMPRESS_GZIP);
+    GreeterClient greeter(grpc::CreateCustomChannel(
+        "localhost:50051", grpc::InsecureChannelCredentials(), args));
+    std::string user("world world world world");
+    std::string reply = greeter.SayHello(user);
+    std::cout << "Greeter received: " << reply << std::endl;
 
-  return 0;
+    return 0;
 }
