@@ -21,6 +21,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <thread>
 
 #include "absl/flags/parse.h"
 #include "absl/log/initialize.h"
@@ -30,7 +31,9 @@
 using grpc::Channel;
 using grpc::ChannelArguments;
 using grpc::ClientContext;
+using grpc::ClientReaderWriter;
 using grpc::Status;
+using grpc::WriteOptions;
 using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloReplyLz4;
@@ -130,6 +133,117 @@ class GreeterClient
         return message_lz4;
     }
 
+    void SayHelloBidiStream()
+    {
+        ClientContext context;
+
+        // 将本地调用的压缩算法设置为gzip
+        context.set_compression_algorithm(GRPC_COMPRESS_GZIP);
+
+        // 创建双向流（ClientReaderWriter 同时具备读写能力）
+        std::shared_ptr<ClientReaderWriter<HelloRequest, HelloReply>> stream(
+            stub_->SayHelloBidiStream(&context));
+
+        // 写线程：客户端发送消息
+        std::thread writer_thread(
+            [&stream]()
+            {
+                // 消息1: 正常压缩发送（使用 GZIP）
+                {
+                    HelloRequest request;
+                    request.set_name(
+                        "Client msg 1 - COMPRESSED with GZIP "
+                        "(normal normal normal normal normal normal normal)");
+
+                    // 默认 WriteOptions，使用 Call 级别设定的 GZIP 压缩
+                    stream->Write(request);
+                    std::cout << "[Client TX] Sent message 1: COMPRESSED (GZIP)"
+                              << std::endl;
+                }
+
+                // 消息2: 禁用压缩发送 (Per-Message Disable)
+                {
+                    HelloRequest request;
+                    request.set_name(
+                        "Client msg 2 - UNCOMPRESSED (sensitive: "
+                        "token=abc123xyz) "
+                        "(secret secret secret secret secret secret secret)");
+
+                    // 关键: set_no_compression()
+                    // 即使 Call 级别设置了 GZIP，这条消息也不会被压缩
+                    // 用于防范 CRIME/BEAST 攻击（保护敏感数据）
+                    WriteOptions options;
+                    options.set_no_compression();
+
+                    stream->Write(request, options);
+                    std::cout << "[Client TX] Sent message 2: UNCOMPRESSED "
+                                 "(per-message disable)"
+                              << std::endl;
+                }
+
+                // 消息3: 恢复正常压缩发送
+                {
+                    HelloRequest request;
+                    request.set_name(
+                        "Client msg 3 - COMPRESSED again with GZIP "
+                        "(resume resume resume resume resume resume resume)");
+
+                    // 不设置 set_no_compression()，恢复使用 GZIP 压缩
+                    stream->Write(request);
+                    std::cout << "[Client TX] Sent message 3: COMPRESSED (GZIP)"
+                              << std::endl;
+                }
+
+                // 消息4: 再次禁用压缩（使用 WriteLast 发送最后一条）
+                {
+                    HelloRequest request;
+                    request.set_name(
+                        "Client msg 4 - UNCOMPRESSED & LAST (auth credentials) "
+                        "(private private private private private private "
+                        "private)");
+
+                    // WriteLast = Write + WritesDone 的合并操作
+                    // 同时设置 set_no_compression() 禁用压缩
+                    WriteOptions options;
+                    options.set_no_compression();
+
+                    stream->WriteLast(request, options);
+                    std::cout
+                        << "[Client TX] Sent message 4: UNCOMPRESSED & LAST "
+                           "(WriteLast)"
+                        << std::endl;
+                }
+
+                // 注意: 使用 WriteLast 后不需要再调用 WritesDone()
+                // 如果使用 Write() 发送最后一条，则需要:
+                // stream->WritesDone();
+            });
+
+        // 主线程：客户端读取服务端响应
+        HelloReply reply;
+        while (stream->Read(&reply))
+        {
+            std::cout << "[Client RX] Received from server: " << reply.message()
+                      << std::endl;
+        }
+
+        // 等待写线程完成
+        writer_thread.join();
+
+        // 获取最终状态
+        Status status = stream->Finish();
+        if (status.ok())
+        {
+            std::cout << "[Client] Bidi stream RPC succeeded." << std::endl;
+        }
+        else
+        {
+            std::cout << "[Client] Bidi stream RPC failed: "
+                      << status.error_code() << ": " << status.error_message()
+                      << std::endl;
+        }
+    }
+
    private:
     std::unique_ptr<Greeter::Stub> stub_;
 };
@@ -146,9 +260,11 @@ int main(int argc, char** argv)
     // args.SetCompressionAlgorithm(GRPC_COMPRESS_GZIP);
     GreeterClient greeter(grpc::CreateCustomChannel(
         "localhost:50051", grpc::InsecureChannelCredentials(), args));
-    std::string user(GenerateWorlds(1600));
-    std::string reply = greeter.SayHelloLz4(user);
-    std::cout << "Greeter received: " << reply << std::endl;
+    // std::string user(GenerateWorlds(1600));
+    // std::string reply = greeter.SayHelloLz4(user);
+    // std::cout << "Greeter received: " << reply << std::endl;
+
+    greeter.SayHelloBidiStream();
 
     return 0;
 }

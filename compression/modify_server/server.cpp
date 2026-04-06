@@ -30,7 +30,9 @@
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
+using grpc::ServerReaderWriter;
 using grpc::Status;
+using grpc::WriteOptions;
 using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloReplyLz4;
@@ -80,6 +82,67 @@ class GreeterServiceImpl final : public Greeter::Service
 
         reply->set_message_lz4(message_lz4);
         reply->set_original_size(message.size());
+
+        return Status::OK;
+    }
+
+    // 双向流式 RPC —— 服务端同样可以 Per-Message 控制压缩
+    Status SayHelloBidiStream(
+        ServerContext* context,
+        ServerReaderWriter<HelloReply, HelloRequest>* stream) override
+    {
+        // 将本次调用的压缩算法覆盖为 gzip
+        context->set_compression_algorithm(GRPC_COMPRESS_GZIP);
+        HelloRequest request;
+        int msg_count = 0;
+
+        // 读取客户端发来的每条消息，并逐条回复
+        while (stream->Read(&request))
+        {
+            msg_count++;
+            std::cout << "[Server RX] Received message " << msg_count << ": "
+                      << request.name() << std::endl;
+
+            // 构造回复
+            HelloReply reply;
+
+            // 服务端也可以逐条消息控制压缩
+            if (msg_count % 2 == 0)
+            {
+                // 偶数消息: 服务端回复时禁用压缩
+                reply.set_message(
+                    "Server reply " + std::to_string(msg_count) +
+                    " - UNCOMPRESSED (server per-message disable) "
+                    "(sensitive sensitive sensitive sensitive sensitive "
+                    "sensitive sensitive)");
+
+                // 服务端使用 WriteOptions::set_no_compression()
+                // ServerReaderWriter 同样继承 WriterInterface，支持
+                // WriteOptions
+                WriteOptions options;
+                options.set_no_compression();
+
+                stream->Write(reply, options);
+                std::cout << "[Server TX] Sent reply " << msg_count
+                          << ": UNCOMPRESSED" << std::endl;
+            }
+            else
+            {
+                // 奇数消息: 服务端回复时正常压缩
+                reply.set_message(
+                    "Server reply " + std::to_string(msg_count) +
+                    " - COMPRESSED with GZIP "
+                    "(normal normal normal normal normal normal normal)");
+
+                // 使用默认 WriteOptions（使用服务端设定的压缩算法）
+                stream->Write(reply);
+                std::cout << "[Server TX] Sent reply " << msg_count
+                          << ": COMPRESSED (GZIP)" << std::endl;
+            }
+        }
+
+        std::cout << "[Server] Stream ended. Total messages received: "
+                  << msg_count << std::endl;
 
         return Status::OK;
     }
