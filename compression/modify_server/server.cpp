@@ -40,6 +40,10 @@ class GreeterServiceImpl final : public Greeter::Service {
                   HelloReply* reply) override {
     // 将本次调用的压缩算法覆盖为 DEFLATE。
     context->set_compression_algorithm(GRPC_COMPRESS_DEFLATE);
+
+    // // 将本次调用的压缩等级设置为LOW
+    // context->set_compression_level(GRPC_COMPRESS_LEVEL_HIGH);
+
     std::string prefix("Hello ");
     reply->set_message(prefix + request->name());
     return Status::OK;
@@ -53,6 +57,10 @@ void RunServer() {
   ServerBuilder builder;
   // 设置服务器的默认压缩算法。
   builder.SetDefaultCompressionAlgorithm(GRPC_COMPRESS_GZIP);
+
+  // // 设置服务器默认的压缩等级
+  // builder.SetDefaultCompressionLevel(GRPC_COMPRESS_LEVEL_LOW);
+
   // 监听指定地址，不使用任何认证机制。
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   // 注册 "service" 作为与客户端通信的实例。此处对应的是 *同步* 服务。
