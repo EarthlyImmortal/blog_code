@@ -6,6 +6,7 @@ service Greeter {
   rpc SayHello (HelloRequest) returns (HelloReply) {}
   rpc SayHelloStreamReply (HelloRequest) returns (stream HelloReply) {}
   rpc SayHelloBidiStream (stream HelloRequest) returns (stream HelloReply) {}
+  rpc SayHelloLz4 (HelloRequestLz4) returns (HelloReplyLz4) {}
 }
 
 message HelloRequest {
@@ -14,4 +15,14 @@ message HelloRequest {
 
 message HelloReply {
   string message = 1;
+}
+
+message HelloRequestLz4 {
+  bytes name_lz4 = 1;
+  int32 original_size = 2;     // 原始数据大小，用于解压时分配缓冲区
+}
+
+message HelloReplyLz4 {
+  bytes message_lz4 = 1;
+  int32 original_size = 2;     // 原始数据大小，用于解压时分配缓冲区
 }

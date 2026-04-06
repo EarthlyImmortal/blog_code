@@ -25,6 +25,7 @@
 #include "absl/flags/parse.h"
 #include "absl/log/initialize.h"
 #include "hello_world.grpc.pb.h"
+#include "lz4_helper.h"
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -32,51 +33,87 @@ using grpc::ServerContext;
 using grpc::Status;
 using helloworld::Greeter;
 using helloworld::HelloReply;
+using helloworld::HelloReplyLz4;
 using helloworld::HelloRequest;
+using helloworld::HelloRequestLz4;
 
 // 服务器行为背后的逻辑和数据。
-class GreeterServiceImpl final : public Greeter::Service {
-  Status SayHello(ServerContext* context, const HelloRequest* request,
-                  HelloReply* reply) override {
-    // 将本次调用的压缩算法覆盖为 DEFLATE。
-    context->set_compression_algorithm(GRPC_COMPRESS_DEFLATE);
+class GreeterServiceImpl final : public Greeter::Service
+{
+    Status SayHello(ServerContext* context, const HelloRequest* request,
+                    HelloReply* reply) override
+    {
+        // 将本次调用的压缩算法覆盖为 DEFLATE。
+        context->set_compression_algorithm(GRPC_COMPRESS_DEFLATE);
 
-    // // 将本次调用的压缩等级设置为LOW
-    // context->set_compression_level(GRPC_COMPRESS_LEVEL_HIGH);
+        // // 将本次调用的压缩等级设置为LOW
+        // context->set_compression_level(GRPC_COMPRESS_LEVEL_HIGH);
 
-    std::string prefix("Hello ");
-    reply->set_message(prefix + request->name());
-    return Status::OK;
-  }
+        std::string prefix("Hello ");
+        reply->set_message(prefix + request->name());
+        return Status::OK;
+    }
+
+    Status SayHelloLz4(ServerContext* context, const HelloRequestLz4* request,
+                       HelloReplyLz4* reply) override
+    {
+        std::ignore = context;
+        // 1. 解压请求
+        std::string original =
+            DecompressWithLZ4(request->name_lz4(), request->original_size());
+        if (original.empty())
+        {
+            return Status(grpc::INVALID_ARGUMENT,
+                          "Failed to decompress request");
+        }
+
+        // 2. 业务逻辑：生成响应字符串
+        std::string message = "Hello (LZ4) " + original;
+
+        // 3. 压缩响应
+        int compressed_size = 0;
+        std::string message_lz4 = CompressWithLZ4(message, &compressed_size);
+        if (message_lz4.empty())
+        {
+            return Status(grpc::INTERNAL, "Failed to compress response");
+        }
+
+        reply->set_message_lz4(message_lz4);
+        reply->set_original_size(message.size());
+
+        return Status::OK;
+    }
 };
 
-void RunServer() {
-  std::string server_address("0.0.0.0:50051");
-  GreeterServiceImpl service;
+void RunServer()
+{
+    std::string server_address("0.0.0.0:50051");
+    GreeterServiceImpl service;
 
-  ServerBuilder builder;
-  // 设置服务器的默认压缩算法。
-  builder.SetDefaultCompressionAlgorithm(GRPC_COMPRESS_GZIP);
+    ServerBuilder builder;
+    // // 设置服务器的默认压缩算法。
+    // builder.SetDefaultCompressionAlgorithm(GRPC_COMPRESS_GZIP);
 
-  // // 设置服务器默认的压缩等级
-  // builder.SetDefaultCompressionLevel(GRPC_COMPRESS_LEVEL_LOW);
+    // // 设置服务器默认的压缩等级
+    // builder.SetDefaultCompressionLevel(GRPC_COMPRESS_LEVEL_LOW);
 
-  // 监听指定地址，不使用任何认证机制。
-  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-  // 注册 "service" 作为与客户端通信的实例。此处对应的是 *同步* 服务。
-  builder.RegisterService(&service);
-  // 最后组装服务器。
-  std::unique_ptr<Server> server(builder.BuildAndStart());
-  std::cout << "Server listening on " << server_address << std::endl;
+    // 监听指定地址，不使用任何认证机制。
+    builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+    // 注册 "service" 作为与客户端通信的实例。此处对应的是 *同步* 服务。
+    builder.RegisterService(&service);
+    // 最后组装服务器。
+    std::unique_ptr<Server> server(builder.BuildAndStart());
+    std::cout << "Server listening on " << server_address << std::endl;
 
-  // 等待服务器关闭。注意，必须由其他线程负责关闭服务器，此调用才会返回。
-  server->Wait();
+    // 等待服务器关闭。注意，必须由其他线程负责关闭服务器，此调用才会返回。
+    server->Wait();
 }
 
-int main(int argc, char** argv) {
-  absl::ParseCommandLine(argc, argv);
-  absl::InitializeLog();
-  RunServer();
+int main(int argc, char** argv)
+{
+    absl::ParseCommandLine(argc, argv);
+    absl::InitializeLog();
+    RunServer();
 
-  return 0;
+    return 0;
 }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(Auth C CXX)
+project(Compression C CXX)
 
 # 设置策略 CMP0144 为 NEW
 if(POLICY CMP0144)
@@ -33,13 +33,20 @@ set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
 # 添加include路径
 set(PROTO_FILE_DIR "${CMAKE_SOURCE_DIR}/proto")
 set(COMMON_FILE_DIR "${CMAKE_SOURCE_DIR}/common")
+set(THIRE_PARTY_FILE_DIR "${CMAKE_SOURCE_DIR}/third_party")
 set(ALL_INCLUDE_DIRS
   ${PROTO_FILE_DIR}
   ${COMMON_FILE_DIR}
+  ${THIRE_PARTY_FILE_DIR}
 )
+
+# 整合共用cpp文件
+file(GLOB_RECURSE COMMON_SOURCES "common/*.cpp")
+set(SHARED_SOURCES ${COMMON_SOURCES})
 
 # 设置proto lib 名
 set(PROTO_LIB_NAME "hello_grpc_proto")
+set(LZ4_LIB_NAME "lz4_static")
 
 # 全部lib
 set(ALL_LIBS
@@ -53,6 +60,7 @@ set(ALL_LIBS
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF}
+  ${LZ4_LIB_NAME}
 )
 
 # 设置公共cmake文件路径
@@ -79,3 +87,4 @@ add_subdirectory(server)
 add_subdirectory(client)
 add_subdirectory(modify_server)
 add_subdirectory(modify_client)
+add_subdirectory(third_party)
