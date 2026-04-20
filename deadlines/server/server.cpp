@@ -44,7 +44,7 @@ using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloRequest;
 
-// Logic behind the server's behavior.
+// 服务端行为逻辑。
 class GreeterServiceImpl final : public Greeter::CallbackService {
  public:
   GreeterServiceImpl(const std::string& self_address) {
@@ -59,7 +59,7 @@ class GreeterServiceImpl final : public Greeter::CallbackService {
     if (absl::StartsWith(request->name(), "[propagate me]")) {
       std::unique_ptr<Greeter::Stub> stub = Greeter::NewStub(self_channel_);
       std::this_thread::sleep_for(std::chrono::milliseconds(800));
-      // Forwarding this call to the self as a different call
+      // 将此调用以不同的调用形式转发给自身
       HelloRequest new_request;
       new_request.set_name(request->name().substr(14));
       std::unique_ptr<ClientContext> new_context =
@@ -85,8 +85,7 @@ class GreeterServiceImpl final : public Greeter::CallbackService {
     }
 
     if (request->name() == "delay") {
-      // Intentionally delay for 1.5 seconds so that
-      // the client will see deadline_exceeded.
+      // 故意延迟1.5秒，以便客户端看到 deadline_exceeded。
       std::this_thread::sleep_for(std::chrono::milliseconds(1500));
     }
 
@@ -105,17 +104,15 @@ void RunServer(uint16_t port) {
   GreeterServiceImpl service(server_address);
 
   ServerBuilder builder;
-  // Listen on the given address without any authentication mechanism.
+  // 监听给定地址，不使用任何认证机制。
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-  // Register "service" as the instance through which we'll communicate with
-  // clients. In this case it corresponds to an *synchronous* service.
+  // 注册 "service" 作为与客户端通信的实例。此处对应一个 *同步* 服务。
   builder.RegisterService(&service);
-  // Finally assemble the server.
+  // 最后组装服务器。
   std::unique_ptr<Server> server(builder.BuildAndStart());
   std::cout << "Server listening on " << server_address << std::endl;
 
-  // Wait for the server to shutdown. Note that some other thread must be
-  // responsible for shutting down the server for this call to ever return.
+  // 等待服务器关闭。注意，必须由其他线程负责关闭服务器，此调用才会返回。
   server->Wait();
 }
 

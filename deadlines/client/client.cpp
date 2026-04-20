@@ -41,22 +41,22 @@ void unaryCall(std::shared_ptr<Channel> channel, std::string label,
                std::string message, grpc::StatusCode expected_code) {
   std::unique_ptr<Greeter::Stub> stub = Greeter::NewStub(channel);
 
-  // Data we are sending to the server.
+  // 我们将发送给服务器的数据。
   HelloRequest request;
   request.set_name(message);
 
-  // Container for the data we expect from the server.
+  // 用于存放来自服务器的数据的容器。
   HelloReply reply;
 
-  // Context for the client. It could be used to convey extra information to
-  // the server and/or tweak certain RPC behaviors.
+  // 客户端上下文。可用于向服务器传递额外信息
+  // 和/或调整某些 RPC 行为。
   ClientContext context;
 
-  // Set 1 second timeout
+  // 设置 1 秒超时
   context.set_deadline(std::chrono::system_clock::now() +
                        std::chrono::seconds(1));
 
-  // The actual RPC.
+  // 实际的 RPC。
   std::mutex mu;
   std::condition_variable cv;
   bool done = false;
@@ -74,7 +74,7 @@ void unaryCall(std::shared_ptr<Channel> channel, std::string label,
     cv.wait(lock);
   }
 
-  // Act upon its status.
+  // 根据其状态进行响应。
   std::cout << "[" << label << "] wanted = " << expected_code
             << ", got = " << status.error_code() << std::endl;
 }
@@ -82,15 +82,15 @@ void unaryCall(std::shared_ptr<Channel> channel, std::string label,
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
-  // Instantiate the client. It requires a channel, out of which the actual RPCs
-  // are created. This channel models a connection to an endpoint specified by
-  // the argument "--target=" which is the only expected argument.
+  // 实例化客户端。它需要一个通道，实际的 RPC
+  // 将从该通道创建。该通道模拟到端点的连接，端点由
+  // 参数 "--target=" 指定，这是唯一预期的参数。
   std::string target_str = absl::GetFlag(FLAGS_target);
-  // We indicate that the channel isn't authenticated (use of
-  // InsecureChannelCredentials()).
+  // 我们指明通道未经过身份验证（使用
+  // InsecureChannelCredentials()）。
   std::shared_ptr<Channel> channel =
       grpc::CreateChannel(target_str, grpc::InsecureChannelCredentials());
-  // Making test calls
+  // 进行测试调用
   unaryCall(channel, "Successful request", "world", grpc::StatusCode::OK);
   unaryCall(channel, "Exceeds deadline", "delay",
             grpc::StatusCode::DEADLINE_EXCEEDED);
