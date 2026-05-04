@@ -93,8 +93,22 @@ class GreeterServiceImpl final : public Greeter::CallbackService
 
         if (request->name() == "delay")
         {
-            // 故意延迟1.5秒，以便客户端看到 deadline_exceeded。
-            std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+            // // 故意延迟1.5秒，以便客户端看到 deadline_exceeded。
+            // std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+
+            // 每 100ms 检查一次是否已取消
+            for (int i = 0; i < 15; ++i)
+            {
+                if (context->IsCancelled())
+                {
+                    // 客户端已取消，直接结束，不再 sleep
+                    ServerUnaryReactor* reactor = context->DefaultReactor();
+                    reactor->Finish(Status::CANCELLED);
+                    std::cout << "客户端取消!" << std::endl;
+                    return reactor;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
         }
 
         reply->set_message(request->name());
