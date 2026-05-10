@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(Deadlines C CXX)
+project(Metadata C CXX)
 
 # 设置策略 CMP0144 为 NEW
 if(POLICY CMP0144)
