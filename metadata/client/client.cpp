@@ -41,32 +41,31 @@ class CustomHeaderClient
     {
     }
 
-    // Assembles the client's payload, sends it and presents the response back
-    // from the server.
+    // 组装客户端的负载，发送并呈现来自服务器的响应
     std::string SayHello(const std::string& user)
     {
-        // Data we are sending to the server.
+        // 我们将发送给服务器的数据
         HelloRequest request;
         request.set_name(user);
 
-        // Container for the data we expect from the server.
+        // 存放我们从服务器期望收到的数据的容器
         HelloReply reply;
 
-        // Context for the client. It could be used to convey extra information
-        // to the server and/or tweak certain RPC behaviors.
+        // 客户端上下文。可用于向服务器传递额外信息
+        // 和/或调整某些 RPC 行为
         ClientContext context;
 
-        // Setting custom metadata to be sent to the server
+        // 设置要发送给服务器的自定义元数据
         context.AddMetadata("custom-header", "Custom Value");
 
-        // Setting custom binary metadata
+        // 设置自定义二进制元数据
         char bytes[8] = {'\0', '\1', '\2', '\3', '\4', '\5', '\6', '\7'};
         context.AddMetadata("custom-bin", std::string(bytes, 8));
 
-        // The actual RPC.
+        // 实际的 RPC 调用
         Status status = stub_->SayHello(&context, request, &reply);
 
-        // Act upon its status.
+        // 根据其状态进行处理
         if (status.ok())
         {
             std::cout << "Client received initial metadata from server: "
@@ -97,10 +96,9 @@ int main(int argc, char** argv)
 {
     absl::ParseCommandLine(argc, argv);
     absl::InitializeLog();
-    // Instantiate the client. It requires a channel, out of which the actual
-    // RPCs are created. This channel models a connection to an endpoint (in
-    // this case, localhost at port 50051). We indicate that the channel isn't
-    // authenticated (use of InsecureChannelCredentials()).
+    // 实例化客户端。它需要一个通道，实际的 RPC 调用将基于该通道创建。
+    // 该通道模拟了到某个端点（本例中为 localhost:50051）的连接。
+    // 我们指明该通道未经过认证（使用了 InsecureChannelCredentials()）。
     CustomHeaderClient greeter(grpc::CreateChannel(
         "localhost:50051", grpc::InsecureChannelCredentials()));
     std::string user("world");

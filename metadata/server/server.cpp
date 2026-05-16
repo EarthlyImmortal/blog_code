@@ -34,7 +34,7 @@ using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloRequest;
 
-// Logic and data behind the server's behavior.
+// 服务器行为背后的逻辑和数据。
 class GreeterServiceImpl final : public Greeter::Service
 {
     Status SayHello(ServerContext* context, const HelloRequest* request,
@@ -42,14 +42,14 @@ class GreeterServiceImpl final : public Greeter::Service
     {
         std::string prefix("Hello ");
 
-        // Get the client's initial metadata
+        // 获取客户端的初始元数据
         std::cout << "Client metadata: " << std::endl;
         const std::multimap<grpc::string_ref, grpc::string_ref> metadata =
             context->client_metadata();
         for (auto iter = metadata.begin(); iter != metadata.end(); ++iter)
         {
             std::cout << "Header key: " << iter->first << ", value: ";
-            // Check for binary value
+            // 检查是否为二进制值
             size_t isbin = iter->first.find("-bin");
             if ((isbin != std::string::npos) &&
                 (isbin + 4 == iter->first.size()))
@@ -83,17 +83,17 @@ void RunServer()
     GreeterServiceImpl service;
 
     ServerBuilder builder;
-    // Listen on the given address without any authentication mechanism.
+    // 在给定地址上监听，不使用任何认证机制。
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-    // Register "service" as the instance through which we'll communicate with
-    // clients. In this case it corresponds to an *synchronous* service.
+    // 将“service”注册为用于与客户端通信的实例。
+    // 在这种情况下，它对应的是一个*同步*服务。
     builder.RegisterService(&service);
-    // Finally assemble the server.
+    // 最后组装服务器。
     std::unique_ptr<Server> server(builder.BuildAndStart());
     std::cout << "Server listening on " << server_address << std::endl;
 
-    // Wait for the server to shutdown. Note that some other thread must be
-    // responsible for shutting down the server for this call to ever return.
+    // 等待服务器关闭。请注意，必须由其他某个线程负责关闭服务器，
+    // 此调用才会返回。
     server->Wait();
 }
 
