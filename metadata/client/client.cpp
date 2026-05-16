@@ -78,6 +78,27 @@ class CustomHeaderClient
                              .find("custom-trailing-metadata")
                              ->second
                       << std::endl;
+
+            // std::cout << "Server Header Metadata:" << std::endl;
+            // const std::multimap<grpc::string_ref, grpc::string_ref>
+            //     server_header_metadata = context.GetServerInitialMetadata();
+            // for (auto iter = server_header_metadata.begin();
+            //      iter != server_header_metadata.end(); ++iter)
+            // {
+            //     std::cout << "Header key: " << iter->first
+            //               << ", value: " << iter->second << std::endl;
+            // }
+
+            // std::cout << "Server Trailer Metadata:" << std::endl;
+            // const std::multimap<grpc::string_ref, grpc::string_ref>
+            //     server_trailer_metadata = context.GetServerTrailingMetadata();
+            // for (auto iter = server_trailer_metadata.begin();
+            //      iter != server_trailer_metadata.end(); ++iter)
+            // {
+            //     std::cout << "Header key: " << iter->first
+            //               << ", value: " << iter->second << std::endl;
+            // }
+
             return reply.message();
         }
         else
