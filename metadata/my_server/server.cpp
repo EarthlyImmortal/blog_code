@@ -68,6 +68,24 @@ class GreeterServiceImpl final : public Greeter::Service
             std::cout << std::endl;
         }
 
+        // 测试请求头大小超上限
+        const int metadata_num = 200;
+        const std::string large_value(100, 'X');  // 100 字节的字符串
+
+        for (int i = 0; i < metadata_num; ++i)
+        {
+            std::string key = "test-header-" + std::to_string(i);
+            // 普通文本元数据（键中不能有 '-bin' 后缀，否则会被当做二进制处理）
+            context->AddInitialMetadata(key, large_value);
+        }
+
+        for (int i = 0; i < metadata_num; ++i)
+        {
+            std::string key = "test-trailer-" + std::to_string(i);
+            // 普通文本元数据（键中不能有 '-bin' 后缀，否则会被当做二进制处理）
+            context->AddTrailingMetadata(key, large_value);
+        }
+
         context->AddInitialMetadata("custom-server-metadata",
                                     "initial metadata value");
         context->AddTrailingMetadata("custom-trailing-metadata",
@@ -88,6 +106,11 @@ void RunServer()
     // 将“service”注册为用于与客户端通信的实例。
     // 在这种情况下，它对应的是一个*同步*服务。
     builder.RegisterService(&service);
+
+    // 在服务端设置接收 metadata 的大小限制
+    const int new_limit = 30 * 1024;
+    builder.AddChannelArgument(GRPC_ARG_MAX_METADATA_SIZE, new_limit);
+
     // 最后组装服务器。
     std::unique_ptr<Server> server(builder.BuildAndStart());
     std::cout << "Server listening on " << server_address << std::endl;
