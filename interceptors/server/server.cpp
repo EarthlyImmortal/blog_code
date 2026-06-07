@@ -42,8 +42,8 @@ using keyvaluestore::KeyValueStore;
 using keyvaluestore::Request;
 using keyvaluestore::Response;
 
-// This is a simple interceptor that logs whenever it gets a request, which on
-// the server side happens when initial metadata is received.
+// 这是一个简单的拦截器，每当收到请求时就会记录日志，
+// 在服务端，这发生在收到初始元数据时。
 class LoggingInterceptor : public Interceptor
 {
    public:
@@ -91,7 +91,7 @@ const char* get_value_from_map(const char* key)
     return "";
 }
 
-// Logic behind the server's behavior.
+// 服务端行为背后的逻辑。
 class KeyValueStoreServiceImpl final : public KeyValueStore::CallbackService
 {
     ServerBidiReactor<Request, Response>* GetValues(
@@ -139,21 +139,21 @@ void RunServer()
     KeyValueStoreServiceImpl service;
 
     ServerBuilder builder;
-    // Listen on the given address without any authentication mechanism.
+    // 在给定的地址上监听，不使用任何认证机制。
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-    // Register "service" as the instance through which we'll communicate with
-    // clients. In this case, it corresponds to an *synchronous* service.
+    // 注册 "service" 作为与客户端通信的实例。
+    // 在本例中，它对应一个 *同步* 服务。
     builder.RegisterService(&service);
     std::vector<std::unique_ptr<ServerInterceptorFactoryInterface>> creators;
     creators.push_back(std::unique_ptr<ServerInterceptorFactoryInterface>(
         new LoggingInterceptorFactory()));
     builder.experimental().SetInterceptorCreators(std::move(creators));
-    // Finally assemble the server.
+    // 最后组装服务器。
     std::unique_ptr<Server> server(builder.BuildAndStart());
     std::cout << "Server listening on " << server_address << std::endl;
 
-    // Wait for the server to shutdown. Note that some other thread must be
-    // responsible for shutting down the server for this call to ever return.
+    // 等待服务器关闭。请注意，必须有其他线程负责关闭服务器，
+    // 此调用才会返回。
     server->Wait();
 }
 

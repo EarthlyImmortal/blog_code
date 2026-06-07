@@ -37,8 +37,7 @@ using keyvaluestore::KeyValueStore;
 using keyvaluestore::Request;
 using keyvaluestore::Response;
 
-// Requests each key in the vector and displays the key and its corresponding
-// value as a pair.
+// 请求向量中的每个键，并显示该键及其对应的值作为一对。
 class KeyValueStoreClient : public grpc::ClientBidiReactor<Request, Response>
 {
    public:
@@ -117,11 +116,10 @@ int main(int argc, char** argv)
 {
     absl::ParseCommandLine(argc, argv);
     absl::InitializeLog();
-    // Instantiate the client. It requires a channel, out of which the actual
-    // RPCs are created. This channel models a connection to an endpoint (in
-    // this case, localhost at port 50051). We indicate that the channel isn't
-    // authenticated (use of InsecureChannelCredentials()). In this example, we
-    // are using a cache which has been added in as an interceptor.
+    // 实例化客户端。它需要一个通道，实际 RPC 通过该通道创建。
+    // 该通道模拟到端点（本例中为 localhost:50051）的连接。
+    // 我们指明通道未认证（使用 InsecureChannelCredentials()）。
+    // 在此示例中，我们使用了一个作为拦截器添加的缓存。
     grpc::ChannelArguments args;
     std::vector<
         std::unique_ptr<grpc::experimental::ClientInterceptorFactoryInterface>>
