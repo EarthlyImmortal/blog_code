@@ -23,10 +23,10 @@
 #include "absl/log/check.h"
 #include "key_value_store.grpc.pb.h"
 
-// This is a naive implementation of a cache. A new cache is for each call. For
-// each new key request, the key is first searched in the map and if found, the
-// interceptor fills in the return value without making a request to the server.
-// Only if the key is not found in the cache do we make a request.
+// 这是一个缓存的朴素实现。每次调用都会创建一个新的缓存。
+// 对于每个新的键请求，首先在 map 中搜索该键，如果找到，
+// 拦截器会填充返回值，而不向服务器发送请求。
+// 只有在缓存中未找到键时，我们才发出请求。
 class CachingInterceptor : public grpc::experimental::Interceptor
 {
    public:
@@ -43,9 +43,9 @@ class CachingInterceptor : public grpc::experimental::Interceptor
                 grpc::experimental::InterceptionHookPoints::
                     PRE_SEND_INITIAL_METADATA))
         {
-            // Hijack all calls
+            // 劫持所有调用
             hijack = true;
-            // Create a stream on which this interceptor can make requests
+            // 创建一个流，此拦截器可以通过该流发出请求
             stub_ = keyvaluestore::KeyValueStore::NewStub(
                 methods->GetInterceptedChannel());
             stream_ = stub_->GetValues(&context_);
@@ -53,8 +53,8 @@ class CachingInterceptor : public grpc::experimental::Interceptor
         if (methods->QueryInterceptionHookPoint(
                 grpc::experimental::InterceptionHookPoints::PRE_SEND_MESSAGE))
         {
-            // We know that clients perform a Read and a Write in a loop, so we
-            // don't need to maintain a list of the responses.
+            // 我们知道客户端在循环中执行 Read 和 Write，因此
+            // 不需要维护响应列表。
             std::string requested_key;
             const keyvaluestore::Request* req_msg =
                 static_cast<const keyvaluestore::Request*>(
@@ -65,8 +65,7 @@ class CachingInterceptor : public grpc::experimental::Interceptor
             }
             else
             {
-                // The non-serialized form would not be available in certain
-                // scenarios, so add a fallback
+                // 在某些场景下，非序列化形式可能不可用，因此添加一个回退方案
                 keyvaluestore::Request req_msg;
                 auto* buffer = methods->GetSerializedSendMessage();
                 auto copied_buffer = *buffer;
@@ -77,7 +76,7 @@ class CachingInterceptor : public grpc::experimental::Interceptor
                 requested_key = req_msg.key();
             }
 
-            // Check if the key is present in the map
+            // 检查键是否存在于 map 中
             auto search = cached_map_.find(requested_key);
             if (search != cached_map_.end())
             {
@@ -88,14 +87,14 @@ class CachingInterceptor : public grpc::experimental::Interceptor
             {
                 std::cout << requested_key << " not found in cache"
                           << std::endl;
-                // Key was not found in the cache, so make a request
+                // 在缓存中未找到键，因此发出请求
                 keyvaluestore::Request req;
                 req.set_key(requested_key);
                 stream_->Write(req);
                 keyvaluestore::Response resp;
                 stream_->Read(&resp);
                 response_ = resp.value();
-                // Insert the pair in the cache for future requests
+                // 将键值对插入缓存以供将来请求使用
                 cached_map_.insert({requested_key, response_});
             }
         }
@@ -118,17 +117,15 @@ class CachingInterceptor : public grpc::experimental::Interceptor
             auto* status = methods->GetRecvStatus();
             *status = grpc::Status::OK;
         }
-        // One of Hijack or Proceed always needs to be called to make progress.
+        // 必须始终调用 Hijack 或 Proceed 之一以推进处理。
         if (hijack)
         {
-            // Hijack is called only once when PRE_SEND_INITIAL_METADATA is
-            // present in the hook points
+            // 仅在挂钩点包含 PRE_SEND_INITIAL_METADATA 时调用一次 Hijack
             methods->Hijack();
         }
         else
         {
-            // Proceed is an indicator that the interceptor is done intercepting
-            // the batch.
+            // Proceed 表示该拦截器已完成对这批操作的拦截。
             methods->Proceed();
         }
     }
