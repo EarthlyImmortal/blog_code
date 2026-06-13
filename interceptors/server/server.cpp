@@ -47,6 +47,11 @@ using keyvaluestore::Response;
 class LoggingInterceptor : public Interceptor
 {
    public:
+    LoggingInterceptor()
+    {
+        std::cout << "LoggingInterceptor created!" << std::endl;
+    }
+
     void Intercept(InterceptorBatchMethods* methods) override
     {
         if (methods->QueryInterceptionHookPoint(
@@ -55,6 +60,11 @@ class LoggingInterceptor : public Interceptor
             std::cout << "Got a new streaming RPC" << std::endl;
         }
         methods->Proceed();
+    }
+
+    ~LoggingInterceptor()
+    {
+        std::cout << "LoggingInterceptor destoryed!" << std::endl;
     }
 };
 

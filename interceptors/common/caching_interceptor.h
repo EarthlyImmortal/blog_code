@@ -33,6 +33,7 @@ class CachingInterceptor : public grpc::experimental::Interceptor
     CachingInterceptor(grpc::experimental::ClientRpcInfo* info)
     {
         std::ignore = info;
+        std::cout << "CachingInterceptor created!" << std::endl;
     }
 
     void Intercept(
@@ -128,6 +129,11 @@ class CachingInterceptor : public grpc::experimental::Interceptor
             // Proceed 表示该拦截器已完成对这批操作的拦截。
             methods->Proceed();
         }
+    }
+
+    ~CachingInterceptor()
+    {
+        std::cout << "CachingInterceptor destoryed!" << std::endl;
     }
 
    private:
