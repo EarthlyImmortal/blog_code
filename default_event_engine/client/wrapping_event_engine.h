@@ -16,9 +16,8 @@
 
 namespace my_application {
 
-// A custom EventEngine that keeps track of how many times the `Run` methods
-// were invoked, and delegates all calls to a gRPC internal EventEngine instance
-// owned by this object.
+// 一个自定义 EventEngine，用于跟踪 `Run` 方法被调用的次数，
+// 并将所有调用委托给此对象所拥有的 gRPC 内部 EventEngine 实例。
 class WrappingEventEngine
     : public grpc_event_engine::experimental::EventEngine {
  public:
@@ -38,7 +37,7 @@ class WrappingEventEngine
 
   int get_run_count() { return run_count_.load(); }
 
-  // Passthrough methods
+  // 透传方法
   absl::StatusOr<std::unique_ptr<Listener>> CreateListener(
       Listener::AcceptCallback on_accept,
       absl::AnyInvocable<void(absl::Status)> on_shutdown,

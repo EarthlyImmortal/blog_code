@@ -93,14 +93,13 @@ int main(int argc, char** argv)
 {
     absl::ParseCommandLine(argc, argv);
     absl::InitializeLog();
-    // Create some EventEngine of your choosing, likely your own.
+    // 创建您选择的某个 EventEngine，很可能是您自己的。
     auto custom_engine =
         std::make_shared<my_application::WrappingEventEngine>();
-    // Provide this engine to gRPC. Now there are 2 refs to this engine: one
-    // here, and one owned by gRPC.
+    // 将此引擎提供给 gRPC。现在对此引擎有两个引用：一个在这里，一个由 gRPC
+    // 持有。
     grpc_event_engine::experimental::SetDefaultEventEngine(custom_engine);
-    // This scope ensures that gRPC objects are destroyed before trying to shut
-    // down the EventEngine.
+    // 此作用域确保在尝试关闭 EventEngine 之前销毁 gRPC 对象。
     {
         std::string target_str = absl::GetFlag(FLAGS_target);
         my_application::GreeterClient greeter(grpc::CreateChannel(
@@ -111,10 +110,9 @@ int main(int argc, char** argv)
     }
     LOG(INFO) << "My EventEngine ran " << custom_engine->get_run_count()
               << " closures";
-    // Release the application's ownership of the EventEngine. Now gRPC solely
-    // owns the engine.
+    // 释放应用程序对 EventEngine 的所有权。现在 gRPC 单独拥有该引擎。
     custom_engine.reset();
-    // Block until gRPC is done using the engine, and the engine is destroyed.
+    // 阻塞直到 gRPC 完成使用该引擎，并且该引擎被销毁。
     grpc_event_engine::experimental::ShutdownDefaultEventEngine();
     return 0;
 }
